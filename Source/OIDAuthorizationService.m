@@ -91,13 +91,14 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)shouldHandleURL:(NSURL *)URL {
   NSURL *standardizedURL = [URL standardizedURL];
   NSURL *standardizedRedirectURL = [_request.redirectURL standardizedURL];
+  NSURL *standardizedCallbackURL = _request.callbackURL ? [_request.callbackURL standardizedURL] : standardizedRedirectURL;
 
-  return OIDIsEqualIncludingNil(standardizedURL.scheme, standardizedRedirectURL.scheme) &&
-      OIDIsEqualIncludingNil(standardizedURL.user, standardizedRedirectURL.user) &&
-      OIDIsEqualIncludingNil(standardizedURL.password, standardizedRedirectURL.password) &&
-      OIDIsEqualIncludingNil(standardizedURL.host, standardizedRedirectURL.host) &&
-      OIDIsEqualIncludingNil(standardizedURL.port, standardizedRedirectURL.port) &&
-      OIDIsEqualIncludingNil(standardizedURL.path, standardizedRedirectURL.path);
+  return OIDIsEqualIncludingNil(standardizedURL.scheme, standardizedCallbackURL.scheme) &&
+      OIDIsEqualIncludingNil(standardizedURL.user, standardizedCallbackURL.user) &&
+      OIDIsEqualIncludingNil(standardizedURL.password, standardizedCallbackURL.password) &&
+      OIDIsEqualIncludingNil(standardizedURL.host, standardizedCallbackURL.host) &&
+      OIDIsEqualIncludingNil(standardizedURL.port, standardizedCallbackURL.port) &&
+      OIDIsEqualIncludingNil(standardizedURL.path, standardizedCallbackURL.path);
 }
 
 - (BOOL)resumeExternalUserAgentFlowWithURL:(NSURL *)URL {
@@ -105,9 +106,9 @@ NS_ASSUME_NONNULL_BEGIN
   if (![self shouldHandleURL:URL]) {
     return NO;
   }
-  
+
   AppAuthRequestTrace(@"Authorization Response: %@", URL);
-  
+
   // checks for an invalid state
   if (!_pendingauthorizationFlowCallback) {
     [NSException raise:OIDOAuthExceptionInvalidAuthorizationFlow
@@ -130,7 +131,7 @@ NS_ASSUME_NONNULL_BEGIN
   if (!error) {
     response = [[OIDAuthorizationResponse alloc] initWithRequest:_request
                                                       parameters:query.dictionaryValue];
-      
+
     // verifies that the state in the response matches the state in the request, or both are nil
     if (!OIDIsEqualIncludingNil(_request.state, response.state)) {
       NSMutableDictionary *userInfo = [query.dictionaryValue mutableCopy];
@@ -260,9 +261,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (id<OIDExternalUserAgentSession>) presentAuthorizationRequest:(OIDAuthorizationRequest *)request
     externalUserAgent:(id<OIDExternalUserAgent>)externalUserAgent
              callback:(OIDAuthorizationCallback)callback {
-  
+
   AppAuthRequestTrace(@"Authorization Request: %@", request);
-  
+
   OIDAuthorizationSession *flowSession = [[OIDAuthorizationSession alloc] initWithRequest:request];
   [flowSession presentAuthorizationWithExternalUserAgent:externalUserAgent callback:callback];
   return flowSession;
@@ -281,7 +282,7 @@ NS_ASSUME_NONNULL_BEGIN
                          callback:(OIDTokenCallback)callback {
 
   NSURLRequest *URLRequest = [request URLRequest];
-  
+
   AppAuthRequestTrace(@"Token Request: %@\nHeaders:%@\nHTTPBody: %@",
                       URLRequest.URL,
                       URLRequest.allHTTPHeaderFields,
@@ -406,7 +407,7 @@ NS_ASSUME_NONNULL_BEGIN
         });
         return;
       }
-      
+
       // OpenID Connect Core Section 3.1.3.7. rule #1
       // Not supported: AppAuth does not support JWT encryption.
 
@@ -437,7 +438,7 @@ NS_ASSUME_NONNULL_BEGIN
         });
         return;
       }
-      
+
       // OpenID Connect Core Section 3.1.3.7. rules #4 & #5
       // Not supported.
 
@@ -463,7 +464,7 @@ NS_ASSUME_NONNULL_BEGIN
         });
         return;
       }
-      
+
       // OpenID Connect Core Section 3.1.3.7. rule #10
       // Validates that the issued at time is not more than +/- 10 minutes on the current time.
       NSTimeInterval issuedAtDifference = [idToken.issuedAt timeIntervalSinceNow];
@@ -495,7 +496,7 @@ NS_ASSUME_NONNULL_BEGIN
           return;
         }
       }
-      
+
       // OpenID Connect Core Section 3.1.3.7. rules #12
       // ACR is not directly supported by AppAuth.
 
